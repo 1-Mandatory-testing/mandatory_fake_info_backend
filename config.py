@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class DatabaseSettings(BaseSettings):
     db_host: str = "localhost"
     db_database: str = "addresses"

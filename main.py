@@ -1,7 +1,8 @@
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+
 from fake_info import FakeInfo
-import uvicorn
 
 app = FastAPI(title="Fake Danish Person Data API", version="1.0")
 
@@ -85,7 +86,7 @@ def get_person(n: int = Query(default=1, ge=1, le=100)):
     """Return fake person information (single or bulk 2-100)"""
     if n < 1 or n > 100:
         raise HTTPException(status_code=400, detail="Incorrect GET parameter value")
-    
+
     if n == 1:
         fake = FakeInfo()
         return fake.get_fake_person()
