@@ -15,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Needed for SonarQube
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -64,13 +64,6 @@ jobs:
           ruff_summary.txt
           test_output.xml
           coverage.xml
-
-    - name: SonarQube Scan
-      if: env.SONAR_TOKEN != ''
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   merge-check:
     runs-on: ubuntu-latest
