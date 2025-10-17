@@ -32,16 +32,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Ruff formatting check
+    - name: Run Ruff linting check
       continue-on-error: true
       run: |
-        # Check if code is properly formatted
-        ruff format --check . > ruff_output.txt 2>&1 || true
-        if [ -s ruff_output.txt ]; then
-          echo "Code formatting issues found:" > ruff_summary.txt
-          cat ruff_output.txt >> ruff_summary.txt
+        # Check for linting issues
+        ruff check . > ruff_output.txt 2>&1 || true
+        if grep -q "All checks passed!" ruff_output.txt; then
+          echo "No linting issues found" > ruff_summary.txt
         else
-          echo "No formatting issues found" > ruff_summary.txt
+          echo "Linting issues found:" > ruff_summary.txt
+          cat ruff_output.txt >> ruff_summary.txt
         fi
 
     - name: Check for tests directory
@@ -114,14 +114,14 @@ jobs:
           let testOutput = '';
           let failWorkflow = false;
 
-          // Read Ruff formatting results
+          // Read Ruff linting results
           if (fs.existsSync('ruff_summary.txt')) {
             const ruffContent = fs.readFileSync('ruff_summary.txt', 'utf-8').trim();
-            if (ruffContent.includes('No formatting issues found')) {
-              ruffOutput = 'Code Formatting: ✅ All files properly formatted';
+            if (ruffContent.includes('No linting issues found')) {
+              ruffOutput = 'Code Linting: ✅ No linting issues found';
             } else {
               ruffOutput = '<details>\n' +
-                '<summary>Code Formatting: ❌ Issues found</summary>\n\n' +
+                '<summary>Code Linting: ❌ Issues found</summary>\n\n' +
                 '```\n' +
                 ruffContent + '\n' +
                 '```\n' +

@@ -11,6 +11,3 @@ select = [
 ignore = [
     "E501", # Line too long
 ]
-
-[format]
-quote-style = "double"
