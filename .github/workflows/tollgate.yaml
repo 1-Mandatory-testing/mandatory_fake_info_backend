@@ -67,7 +67,7 @@ jobs:
 
     - name: SonarQube Scan
       if: env.SONAR_TOKEN != ''
-      uses: SonarSource/sonarqube-quality-gate-action@v6.0.0
+      uses: sonarsource/sonarqube-quality-gate-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
