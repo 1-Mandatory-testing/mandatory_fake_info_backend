@@ -17,7 +17,7 @@ def get_person_names():
     data_path = os.path.join(project_root, 'data', 'person-names.json')
 
     if not os.path.exists(data_path):
-        print(f"❌ person-names.json not found at: {data_path}")
+        print(f"person-names.json not found at: {data_path}")
         return None
 
     with open(data_path, 'r', encoding='utf-8') as f:
