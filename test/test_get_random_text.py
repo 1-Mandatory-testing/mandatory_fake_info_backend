@@ -1,14 +1,37 @@
-import pytest
-from fake_info import FakeInfo
-
 """
 Unit tests for FakeInfo class - _get_random_text() method
 
 Black-box techniques: Equivalence Partitioning (EP), Boundary Value Analysis (BVA)
 White-box techniques: Statement Coverage, Decision Coverage
 """
+import pytest
+from fake_info import FakeInfo
+from unittest.mock import patch, MagicMock
 
 # ========== FIXTURES ==========
+
+@pytest.fixture(autouse=True)
+def mock_dependencies():
+    """Mock DB and file/json so FakeInfo.__init__ can run"""
+    with patch('fake_info.DB') as mock_db, \
+         patch('builtins.open', create=True), \
+         patch('json.load') as mock_json_load:
+
+        mock_json_load.return_value = {
+            'persons': [
+                {'firstName': 'John', 'lastName': 'Doe', 'gender': 'male'}
+            ]
+        }
+
+        mock_db_instance = MagicMock()
+        mock_db_instance.get_random_town.return_value = {
+            'postal_code': '1970',
+            'town_name': 'Frederiksberg'
+        }
+        mock_db.return_value = mock_db_instance
+
+        yield
+
 
 @pytest.fixture
 def fake_info():
