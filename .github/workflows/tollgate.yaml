@@ -61,6 +61,12 @@ jobs:
           echo "Running tests (excluding integration tests)..."
           pytest -m "not integration" --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing --junitxml=test_output.xml || echo "Tests completed"
 
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v5.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
