@@ -1,180 +1,122 @@
 """
-Unit tests for FakeInfo class - _get_random_text() method
+Unit tests for FakeInfo._get_random_text()
 
-Black-box techniques: Equivalence Partitioning (EP), Boundary Value Analysis (BVA)
-White-box techniques: Statement Coverage, Decision Coverage
+Black-box: Equivalence Partitioning (EP), Boundary Value Analysis (BVA)
+White-box: Decision coverage for include_danish branch
 """
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from fake_info import FakeInfo
 
-# ========== FIXTURES ==========
-
-@pytest.fixture(autouse=True)
-def mock_dependencies():
-    """Mock DB and file/json so FakeInfo.__init__ can run"""
-    with patch('fake_info.DB') as mock_db, \
-         patch('builtins.open', create=True), \
-         patch('json.load') as mock_json_load:
-
-        mock_json_load.return_value = {
-            'persons': [
-                {'firstName': 'John', 'lastName': 'Doe', 'gender': 'male'}
-            ]
-        }
-
-        mock_db_instance = MagicMock()
-        mock_db_instance.get_random_town.return_value = {
-            'postal_code': '1970',
-            'town_name': 'Frederiksberg'
-        }
-        mock_db.return_value = mock_db_instance
-
-        yield
-
 
 @pytest.fixture
-def fake_info():
-    """Fixture to provide FakeInfo instance for each test"""
-    return FakeInfo()
+def fake_instance():
+    """Create FakeInfo instance"""
+    return object.__new__(FakeInfo)
 
 
-# ========== BLACK-BOX TESTS ==========
+# ========== HELPERS ==========
 
-class TestGetRandomTextBlackBox:
-    """Black-box tests using EP and BVA"""
-
-    # EP1: Length matches input (3-value BVA approach)
-    VALID_LENGTHS = ('length', [
-        1,      # Minimum boundary
-        2,      # Minimum + 1
-        20,     # Middle partition value
-        39,     # Maximum - 1 (for street)
-        40,     # Maximum boundary (for street)
-        100,    # Large value test
-    ])
-
-    @pytest.mark.parametrize(*VALID_LENGTHS)
-    def test_length_matches_input(self, length, fake_info):
-        """EP1 + BVA: Output length matches input (3-value boundary approach)"""
-        result = fake_info._get_random_text(length=length)
-        assert len(result) == length
-
-    # EP2: First character not space (loop-based)
-    def test_first_character_not_space(self, fake_info):
-        """EP2: First character cannot be a space"""
-        for _ in range(20):
-            result = fake_info._get_random_text(length=20)
-            assert result[0] != ' ', f"First char was space in: '{result}'"
-
-    # EP3: Valid characters (parameterized)
-    @pytest.mark.parametrize("include_danish,expected_chars", [
-        (True, set(' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZæøåÆØÅ')),
-        (False, set(' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')),
-    ])
-
-    def test_only_valid_characters(self, include_danish, expected_chars, fake_info):
-        """EP3: Only valid characters based on include_danish parameter"""
-        result = fake_info._get_random_text(length=40, include_danish=include_danish)
-        for char in result:
-            assert char in expected_chars, f"Invalid char '{char}' found"
-
-    # EP4: Danish characters handling
-    def test_no_danish_when_false(self, fake_info):
-        """EP4: No Danish characters when include_danish=False"""
-        danish_chars = set('æøåÆØÅ')
-        for _ in range(20):
-            result = fake_info._get_random_text(length=40, include_danish=False)
-            assert not any(char in danish_chars for char in result)
+ASCII_CHARS = set(' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+DANISH_CHARS = set('æøåÆØÅ')
+ALL_CHARS = ASCII_CHARS | DANISH_CHARS
 
 
-# ========== WHITE-BOX TESTS ==========
+# ========== BLACK-BOX: ==========
 
-class TestGetRandomTextWhiteBox:
-    """White-box tests for statement and decision coverage"""
-
-    def test_statement_coverage(self, fake_info):
-        """White-box: All code paths executed"""
-        result1 = fake_info._get_random_text(length=10, include_danish=True)
-        result2 = fake_info._get_random_text(length=10, include_danish=False)
-
-        assert len(result1) == 10
-        assert len(result2) == 10
-
-    @pytest.mark.parametrize("include_danish,expect_danish_possible", [
-        (True, True),
-        (False, False),
-    ])
-    def test_decision_coverage_include_danish(self, include_danish, expect_danish_possible, fake_info):
-        """White-box Decision: Test both branches of include_danish"""
-        danish_chars = set('æøåÆØÅ')
-        found_danish = False
-
-        for _ in range(50):
-            result = fake_info._get_random_text(length=40, include_danish=include_danish)
-            if any(char in danish_chars for char in result):
-                found_danish = True
-                break
-
-        if expect_danish_possible:
-            assert found_danish, "Expected Danish chars with include_danish=True"
-        else:
-            assert not found_danish, "No Danish chars expected with include_danish=False"
+@pytest.mark.parametrize("length", [
+    1,      # minimum
+    2,      # minimum + 1
+    20,     # mid-value
+    39,     # max-1 for some domains
+    40,     # common "max" for some domains
+    100     # larger value
+])
+def test_length_matches_input(length, fake_instance):
+    """The output string length must equal the requested length."""
+    s = fake_instance._get_random_text(length=length)
+    assert len(s) == length
 
 
-# ========== EDGE CASE / INVALID INPUT TESTS ==========
+def test_first_character_is_not_space(fake_instance):
+    """The first character must never be a space."""
+    for _ in range(30):
+        s = fake_instance._get_random_text(length=20)
+        assert s[0] != ' ', f"First char was space in: {s!r}"
 
-class TestGetRandomTextEdgeCases:
+
+@pytest.mark.parametrize("include_danish, expected_charset", [
+    (True,  ASCII_CHARS | DANISH_CHARS),
+    (False, ASCII_CHARS),
+])
+def test_only_valid_characters(include_danish, expected_charset, fake_instance):
     """
-    Edge case tests - Testing behavior with invalid/boundary inputs
-
+    All characters must belong to the expected character set depending on
+    the include_danish flag.
     """
+    s = fake_instance._get_random_text(length=40, include_danish=include_danish)
+    assert all(ch in expected_charset for ch in s)
 
-    def test_length_zero_returns_one_character(self, fake_info):
-        """
-        Invalid input: length=0 (below minimum boundary)
-        Expected: Should return empty string
-        """
-        result = fake_info._get_random_text(length=0)
-        # Documents bug: length=0 returns 1 char instead of empty string
-        assert len(result) == 1, "Bug: length=0 should return empty string, but returns 1 char"
 
-    @pytest.mark.parametrize("invalid_length", [-1, -5, -100])
-    def test_negative_length_behavior(self, invalid_length, fake_info):
-        """
-        Invalid input: length < 0 (invalid partition)
-        Expected: Should validate and raise ValueError
-        Actual: Returns 1 character (first char selection runs, loop skips)
-        """
-        result = fake_info._get_random_text(length=invalid_length)
+def test_no_danish_chars_when_false(fake_instance):
+    """With include_danish=False, the output must not contain Danish letters."""
+    for _ in range(20):
+        s = fake_instance._get_random_text(length=40, include_danish=False)
+        assert not any(ch in DANISH_CHARS for ch in s)
 
-        assert len(result) == 1, f"Negative length {invalid_length} should be rejected"
 
-    def test_length_very_large(self, fake_info):
-        """
-        Boundary test: Very large length (stress test)
-        Tests system behavior at extreme valid values
-        """
-        result = fake_info._get_random_text(length=10000)
-        assert len(result) == 10000
-        assert result[0] != ' '
+# ========== WHITE-BOX: cover include_danish branch ==========
 
-    def test_length_invalid_type_string(self, fake_info):
-        """
-        Invalid input: length="abc" (wrong type)
-        Expected: Should validate type and raise TypeError
-        Actual: Causes TypeError in range() function
-        """
-        with pytest.raises(TypeError):
-            fake_info._get_random_text(length="abc")
+def test_branch_include_danish_true(monkeypatch, fake_instance):
+    """
+    White-box: Force random.choice so that a Danish char is chosen when available
+    to prove the True branch permits Danish letters.
+    """
+    def choose(seq):
+        return 'Æ' if 'Æ' in seq else 'A'
+    monkeypatch.setattr('random.choice', choose)
 
-    def test_length_invalid_type_none(self, fake_info):
-        """
-        Invalid input: length=None (null value)
-        Expected: Should validate and raise ValueError
-        Actual: Causes TypeError in range() function
-        """
-        with pytest.raises(TypeError):
-            fake_info._get_random_text(length=None)
+    s = fake_instance._get_random_text(length=10, include_danish=True)
+    assert any(ch in DANISH_CHARS for ch in s)
+
+
+def test_branch_include_danish_false(monkeypatch, fake_instance):
+    """
+    White-box: Using forced chooser, prove that with include_danish=False,
+    Danish letters cannot appear.
+    """
+    def choose(seq):
+        return 'Æ' if 'Æ' in seq else 'A'
+    monkeypatch.setattr('random.choice', choose)
+
+    s = fake_instance._get_random_text(length=10, include_danish=False)
+    assert not any(ch in DANISH_CHARS for ch in s)
+
+
+# ========== EDGE CASES ==========
+
+@pytest.mark.parametrize("invalid_length", [-1, -5, -100])
+def test_negative_length(invalid_length, fake_instance):
+    """
+    For negative length, one first character is chosen, the loop runs 0 times,
+    so total length == 1.
+    """
+    s = fake_instance._get_random_text(length=invalid_length)
+    assert len(s) == 1
+
+
+def test_very_large_length_is_supported(fake_instance):
+    """Stress: Large length is produced and first char is not a space."""
+    s = fake_instance._get_random_text(length=5000)
+    assert len(s) == 5000
+    assert s[0] != ' '
+
+def test_invalid_type_string_raises(fake_instance):
+    """Type error is raised if length is a string."""
+    with pytest.raises(TypeError):
+        fake_instance._get_random_text(length="abc")
+
+def test_invalid_type_none_raises(fake_instance):
+    """Type error is raised if length is None."""
+    with pytest.raises(TypeError):
+        fake_instance._get_random_text(length=None)

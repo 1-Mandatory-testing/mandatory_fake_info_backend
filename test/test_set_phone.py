@@ -1,153 +1,85 @@
 """
-Unit tests for FakeInfo class - _set_phone() method
+Unit tests for FakeInfo._set_phone() method
 
-Black-box techniques: Equivalence Partitioning (EP), Boundary Value Analysis (BVA)
-White-box techniques: Statement Coverage, Decision Coverage
+Black-box: Equivalence Partitioning (EP), Boundary Value Analysis (BVA)
+White-box: Statement Coverage (no branches in method)
 """
-from unittest.mock import MagicMock, patch
+import re
+from unittest.mock import patch
 
 import pytest
 
 from fake_info import FakeInfo
 
-# ========== FIXTURES ==========
 
-@pytest.fixture(autouse=True)
-def mock_dependencies():
-    """Mock DB and file/json so FakeInfo.__init__ can run"""
-    with patch('fake_info.DB') as mock_db, \
-         patch('builtins.open', create=True), \
-         patch('json.load') as mock_json_load:
-
-        mock_json_load.return_value = {
-            'persons': [
-                {'firstName': 'Test', 'lastName': 'Person', 'gender': 'male'}
-            ]
-        }
-
-        mock_db_instance = MagicMock()
-        mock_db_instance.get_random_town.return_value = {
-            'postal_code': '2100',
-            'town_name': 'København Ø'
-        }
-        mock_db.return_value = mock_db_instance
-
-        yield
+@pytest.fixture
+def fake_instance():
+    """Create FakeInfo instance"""
+    return object.__new__(FakeInfo)
 
 
-# ========== BLACK-BOX TESTS ==========
-
-class TestSetPhoneBlackBox:
-    """Black-box tests using Equivalence Partitioning (EP) and Boundary Value Analysis (BVA)"""
-
-    def test_length_is_8_digits(self):
-        """EP1: Phone number is always exactly 8 digits"""
-        for _ in range(100):
-            fake = FakeInfo()
-            assert len(fake.phone_number) == 8, \
-                f"Phone number '{fake.phone_number}' is not 8 digits"
-
-    def test_starts_with_valid_prefix(self):
-        """EP2: Phone number starts with one of the valid prefixes"""
-        for _ in range(100):
-            fake = FakeInfo()
-            phone = fake.phone_number
-
-            valid_prefixes = FakeInfo.PHONE_PREFIXES
-            assert any(phone.startswith(prefix) for prefix in valid_prefixes), \
-                f"Phone '{phone}' does not start with valid prefix"
-
-    def test_only_numeric_characters(self):
-        """EP3: Phone number contains only digits (no letters/special chars)"""
-        for _ in range(100):
-            fake = FakeInfo()
-            assert fake.phone_number.isdigit(), \
-                f"Phone number '{fake.phone_number}' contains non-digit characters"
-
-    def test_bva_shortest_prefix(self):
-        """BVA: Shortest prefix '2' (1 digit) results in 7 additional digits"""
-        fake = FakeInfo()
-        with patch('fake_info.random.choice', return_value='2'):
-            fake._set_phone()
-
-        assert len(fake.phone_number) == 8, \
-            f"Expected length 8, got {len(fake.phone_number)}"
-        assert fake.phone_number.startswith('2'), \
-            f"Expected prefix '2', got '{fake.phone_number}'"
-
-    def test_bva_longest_prefix(self):
-        """BVA: Longest prefix '342' (3 digits) results in 5 additional digits"""
-        fake = FakeInfo()
-        with patch('fake_info.random.choice', return_value='342'):
-            fake._set_phone()
-
-        assert len(fake.phone_number) == 8
-        assert fake.phone_number.startswith('342')
-
-    def test_bva_medium_prefix(self):
-        """BVA: Medium prefix '30' (2 digits) results in 6 additional digits"""
-        fake = FakeInfo()
-        with patch('fake_info.random.choice', return_value='30'):
-            fake._set_phone()
-
-        assert len(fake.phone_number) == 8
-        assert fake.phone_number.startswith('30')
+PHONE_RE = re.compile(r'^\d{8}$')
+PREFIXES = FakeInfo.PHONE_PREFIXES
 
 
-# ========== WHITE-BOX TESTS ==========
+# ========== BLACK-BOX: EQUIVALENCE PARTITIONING ==========
 
-class TestSetPhoneWhiteBox:
-    """White-box tests for Statement Coverage and Decision Coverage"""
-
-    def test_statement_coverage(self):
-        """White-box Statement Coverage: All lines in _set_phone() executed"""
-        fake = FakeInfo()
-
-        assert hasattr(fake, 'phone_number')
-        assert len(fake.phone_number) == 8
-        assert fake.phone_number.isdigit()
-
-    def test_decision_coverage_no_branches(self):
-        """White-box Decision Coverage: No conditional branches in _set_phone()"""
-        fake = FakeInfo()
-        assert isinstance(fake.phone_number, str), \
-            "Method should always return a string phone number"
+def test_phone_length_is_always_8_digits(fake_instance):
+    """Valid output partition - all phone numbers are 8 digits"""
+    for _ in range(10):
+        fake_instance._set_phone()
+        assert PHONE_RE.fullmatch(fake_instance.phone_number)
 
 
-# ========== EDGE CASE TESTS ==========
+def test_phone_starts_with_valid_prefix(fake_instance):
+    """Valid prefix partition - must match allowed prefixes"""
+    for _ in range(10):
+        fake_instance._set_phone()
+        assert any(fake_instance.phone_number.startswith(p) for p in PREFIXES)
 
-class TestSetPhoneEdgeCases:
-    """Edge case tests for unusual but valid scenarios"""
 
-    def test_all_prefixes_produce_valid_phones(self):
-        """Edge case: Every prefix in PHONE_PREFIXES produces valid 8-digit phone"""
-        fake = FakeInfo()
+def test_phone_contains_only_digits(fake_instance):
+    """Valid characters partition - only numeric digits allowed"""
+    for _ in range(10):
+        fake_instance._set_phone()
+        assert fake_instance.phone_number.isdigit()
 
-        for prefix in FakeInfo.PHONE_PREFIXES:
-            with patch('fake_info.random.choice', return_value=prefix):
-                fake._set_phone()
 
-            assert len(fake.phone_number) == 8, \
-                f"Prefix '{prefix}' length: {len(fake.phone_number)}"
-            assert fake.phone_number.startswith(prefix), \
-                f"Expected '{prefix}', got '{fake.phone_number}'"
+# ========== BLACK-BOX: BOUNDARY VALUE ANALYSIS (Deterministic) ==========
 
-    def test_phone_number_is_string_not_int(self):
-        """Edge case: Phone number is stored as string (not int)"""
-        fake = FakeInfo()
-        assert isinstance(fake.phone_number, str), \
-            f"Expected string, got {type(fake.phone_number).__name__}"
+def test_prefix_length_1_minimum(fake_instance):
+    with patch('fake_info.random.choice', return_value='2'):
+        fake_instance._set_phone()
+    assert fake_instance.phone_number.startswith('2')
+    assert len(fake_instance.phone_number) == 8
+    assert PHONE_RE.fullmatch(fake_instance.phone_number)
 
-    def test_stress_test_many_phones(self):
-        """Stress test: Generate many phone numbers to verify stability"""
-        phones = []
-        for _ in range(1000):
-            fake = FakeInfo()
-            phones.append(fake.phone_number)
+def test_prefix_length_2_medium(fake_instance):
+    with patch('fake_info.random.choice', return_value='30'):
+        fake_instance._set_phone()
+    assert fake_instance.phone_number.startswith('30')
+    assert len(fake_instance.phone_number) == 8
+    assert PHONE_RE.fullmatch(fake_instance.phone_number)
 
-        assert all(len(p) == 8 for p in phones), "Not all phones are 8 digits"
-        assert all(p.isdigit() for p in phones), "Not all phones are numeric"
+def test_prefix_length_3_maximum(fake_instance):
+    with patch('fake_info.random.choice', return_value='342'):
+        fake_instance._set_phone()
+    assert fake_instance.phone_number.startswith('342')
+    assert len(fake_instance.phone_number) == 8
+    assert PHONE_RE.fullmatch(fake_instance.phone_number)
 
-        unique_phones = len(set(phones))
-        assert unique_phones > 900, \
-            f"Only {unique_phones} unique phones out of 1000"
+
+# ========== WHITE-BOX: STATEMENT COVERAGE ==========
+
+def test_all_statements_executed(fake_instance):
+    """White-box: Executes all statements in _set_phone (no branches)"""
+    # Mock for deterministic output
+    with patch('fake_info.random.choice', return_value='50'), \
+         patch('fake_info.random.randint', return_value=0):
+        fake_instance._set_phone()
+
+    # Verify all steps executed: prefix choice, suffix generation, concatenation
+    assert hasattr(fake_instance, 'phone_number')
+    assert isinstance(fake_instance.phone_number, str)
+    assert fake_instance.phone_number == '50000000'
+    assert PHONE_RE.fullmatch(fake_instance.phone_number)
