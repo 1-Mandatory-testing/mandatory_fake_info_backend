@@ -126,10 +126,10 @@ jobs:
             if (fs.existsSync('ruff_summary.txt')) {
               const ruffContent = fs.readFileSync('ruff_summary.txt', 'utf-8').trim();
               if (ruffContent.includes('No linting issues found')) {
-                ruffOutput = 'Code Linting: ✅ No linting issues found';
+                ruffOutput = 'Code Linting: No linting issues found ✅';
               } else {
                 ruffOutput = '<details>\n' +
-                  '<summary>Code Linting: ❌ Issues found</summary>\n\n' +
+                  '<summary>Code Linting: Issues found ❌</summary>\n\n' +
                   '```\n' +
                   ruffContent + '\n' +
                   '```\n' +
@@ -163,7 +163,7 @@ jobs:
                   });
                   
                   testOutput = '<details>\n' +
-                    `<summary>Tests: (${passed} passed, 0 failures, 0 errors) ✅</summary>\n\n` +
+                    `<summary>Unit Tests: (${passed} passed, 0 failures, 0 errors) ✅</summary>\n\n` +
                     '```\n' +
                     testList.join('\n') + '\n' +
                     '```\n' +
@@ -187,7 +187,7 @@ jobs:
                   });
                   
                   testOutput = '<details>\n' +
-                    `<summary>Tests: (${passed} passed, ${failures} failures, ${errors} errors) ❌</summary>\n\n` +
+                    `<summary>Unit Tests: (${passed} passed, ${failures} failures, ${errors} errors) ❌</summary>\n\n` +
                     '```\n' +
                     testList.join('\n\n') + '\n' +
                     '```\n' +
@@ -195,7 +195,7 @@ jobs:
                   failWorkflow = true;
                 }
               } else {
-                testOutput = 'Tests: ❌ Test execution failed';
+                testOutput = 'Unit Tests: ❌ Test execution failed';
                 failWorkflow = true;
               }
             } else {
