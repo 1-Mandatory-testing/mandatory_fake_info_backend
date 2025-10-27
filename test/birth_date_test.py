@@ -1,7 +1,9 @@
-import pytest
 from datetime import datetime
-from fake_info import FakeInfo  
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from fake_info import FakeInfo
 
 
 @pytest.fixture
@@ -10,46 +12,46 @@ def mock_dependencies():
     with patch('fake_info.DB') as mock_db, \
          patch('builtins.open', create=True), \
          patch('json.load') as mock_json_load:
-        
+
         mock_json_load.return_value = {
             'persons': [
                 {'firstName': 'Hugo', 'lastName': 'Ekitike', 'gender': 'male'}
             ]
         }
-        
+
         mock_db_instance = MagicMock()
         mock_db_instance.get_random_town.return_value = {
             'postal_code': '1000',
             'town_name': 'København'
         }
         mock_db.return_value = mock_db_instance
-        
+
         yield
 
 class TestSetBirthDate:
     """Tests for _set_birth_date() method"""
-    
+
     # ==================== BLACK-BOX TESTS - Equivalence Partitioning ====================
 
     def test_year_valid_range_middle_value(self, mock_dependencies):
         """EP1: Test year in valid range (middle value: 1980)"""
         person = FakeInfo()
-        
+
         for _ in range(100):
             person._set_birth_date()
             year = int(person.birth_date.split('-')[0])
             assert 1900 <= year <= datetime.now().year
-    
+
 
     def test_month_valid_range_middle_value(self, mock_dependencies):
         """EP2: Test month in valid range (middle value: 6)"""
-        person = FakeInfo() 
+        person = FakeInfo()
         for _ in range(100):
             person._set_birth_date()
             month = int(person.birth_date.split('-')[1])
             assert 1 <= month <= 12
-            
-    
+
+
     def test_days_for_31_day_months(self, mock_dependencies):
         """EP3: Test days for months with 31 days (January)"""
 
@@ -91,10 +93,10 @@ class TestSetBirthDate:
               found_28_day_month = True
               assert 1 <= day <= 28
         assert found_28_day_month, "Test did not encounter any 28-day months"
-    
-        
-    
-    
+
+
+
+
     # # ==================== BLACK-BOX TESTS - Boundary Value Analysis ====================
 #   No boundaries to test in this case, since it doesnt take input parameters and it is random
 #   so EP tests cover the necessary cases.
@@ -104,7 +106,7 @@ class TestSetBirthDate:
     # # ==================== WHITE-BOX TESTS - Statement and Decision Coverage ====================
 
     @pytest.mark.parametrize("month,max_day", [(1, 31), (4, 30), (2, 28)])
-    
+
     def test_set_birth_date_whitebox_branches(self, mock_dependencies, month, max_day):
         person = FakeInfo()
         with patch('fake_info.random.randint', side_effect=[1980, month, max_day]):

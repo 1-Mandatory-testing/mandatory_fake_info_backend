@@ -1,6 +1,8 @@
 import re
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from fake_info import FakeInfo
 
 
@@ -48,7 +50,7 @@ class TestSetAddress:
         assert re.fullmatch(r'[A-Za-zÆØÅæøå ]+', street), "Street contains invalid characters"
 
     def test_number_format(self, mock_dependencies_for_address):
-        """EP2: Number matches r'^\d{1,3}[A-Z]?$' og 1 <= number_part <= 999"""
+        r"""EP2: Number matches r'^\d{1,3}[A-Z]?$' og 1 <= number_part <= 999"""
         person = FakeInfo()
 
         number = person.address['number']
@@ -89,9 +91,9 @@ class TestSetAddress:
             assert 1 <= int(number_part) <= 999, f"Door letter-number part {number_part} is out of range 1..999"
         else:
             pytest.fail(f"Door '{door}' does not match any expected format")
-        
-        
-        
+
+
+
     def test_postal_code_and_town_from_db(self, mock_dependencies_for_address):
         """EP5: postal_code 4 cifre, town_name ikke tom, matcher mock-DB værdier"""
         # 1. Opret FakeInfo objekt
@@ -111,7 +113,7 @@ class TestSetAddress:
         assert postal_code == "2100", f"Postal code '{postal_code}' matcher ikke forventet værdi '2100'"
         assert town_name == "København Ø", f"Town name '{town_name}' matcher ikke forventet værdi 'København Ø'"
 
-        
+
 
     # ==================== BLACK-BOX: BVA ====================
 #   No boundaries to test in this case, since it doesnt take input parameters and it is random
